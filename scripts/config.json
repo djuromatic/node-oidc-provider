@@ -1,0 +1,7 @@
+{
+  "issuer": "https://xauth.test:9001",
+  "client_id": "oidcCLIENT",
+  "audiance": "https://xauth.test:9001",
+  "hostname": "xauth.test",
+  "port": 6001
+}
