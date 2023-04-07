@@ -15,12 +15,17 @@ import routes from "./routes/express.js";
 import https from "https";
 import fs from "fs";
 
+import bodyParser from "body-parser";
+import * as jose from "jose";
+
 const __dirname = dirname(import.meta.url);
 
 const { PORT = 3001, ISSUER = `https://xauth.test:9001` } = process.env;
 configuration.findAccount = Account.findAccount;
 
 const app = express();
+
+app.use(bodyParser.json());
 
 const directives = helmet.contentSecurityPolicy.getDefaultDirectives();
 delete directives["form-action"];
@@ -73,6 +78,26 @@ try {
   }
 
   routes(app, provider);
+  app.get("/checkJWT", async (req, res) => {
+    console.log({ x: req.body.token });
+
+    try {
+      const alg = "RS256";
+      const jwk = configuration.jwks.keys[0];
+      const publicKey = await jose.importJWK(jwk, alg);
+      const jwt = req.body.token;
+      const { payload, protectedHeader } = await jose.jwtVerify(jwt, publicKey);
+
+      res.send({
+        token: req.body.token,
+        payload,
+        OK: true,
+      });
+    } catch (error) {
+      res.send({ OK: false });
+    }
+  });
+
   app.use(provider.callback());
   server = app.listen(PORT, () => {
     console.log(
