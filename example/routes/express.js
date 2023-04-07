@@ -178,6 +178,27 @@ export default (app, provider) => {
     }
   });
 
+  // app.post("/interaction/:uid/signup", setNoCache, body, async (req, res, next) => {
+  //   try {
+  //     const {
+  //       prompt: { name },
+  //     } = await provider.interactionDetails(req, res);
+  //     assert.equal(name, "login");
+  //     const account = new Account({
+  //       accountId: uuid(),
+  //       claims: () => Promise.resolve({ email: req.body.email, email_verified: false }),
+  //     });
+  //     await account.save();
+  //     const result = {
+  //       login: {
+  //         accountId: account.accountId,
+  //       },
+  //     };
+  //     await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // });
   app.use((err, req, res, next) => {
     if (err instanceof SessionNotFound) {
       // handle interaction expired / session not found error

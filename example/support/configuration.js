@@ -11,8 +11,12 @@ export default {
         "https://xauth.test:6001",
         "https://login.xauth.test:6001",
       ],
+      token_endpoint_auth_method: "none",
     },
   ],
+  formats: {
+    AccessToken: "jwt",
+  },
   interactions: {
     url(ctx, interaction) {
       // eslint-disable-line no-unused-vars
@@ -45,7 +49,6 @@ export default {
   },
   features: {
     devInteractions: { enabled: false }, // defaults to true
-
     deviceFlow: { enabled: true }, // defaults to false
     revocation: { enabled: true }, // defaults to false
   },
