@@ -1,27 +1,36 @@
 /* eslint-disable no-console, camelcase, no-unused-vars */
-import { strict as assert } from 'node:assert';
-import * as querystring from 'node:querystring';
-import { inspect } from 'node:util';
+import { strict as assert } from "node:assert";
+import * as querystring from "node:querystring";
+import { inspect } from "node:util";
 
-import isEmpty from 'lodash/isEmpty.js';
-import { urlencoded } from 'express'; // eslint-disable-line import/no-unresolved
+import isEmpty from "lodash/isEmpty.js";
+import { urlencoded } from "express"; // eslint-disable-line import/no-unresolved
 
-import Account from '../support/account.js';
+import Account from "../support/account.js";
+import { errors } from "../../lib/index.js"; // from 'oidc-provider';
 
 const body = urlencoded({ extended: false });
 
 const keys = new Set();
-const debug = (obj) => querystring.stringify(Object.entries(obj).reduce((acc, [key, value]) => {
-  keys.add(key);
-  if (isEmpty(value)) return acc;
-  acc[key] = inspect(value, { depth: null });
-  return acc;
-}, {}), '<br/>', ': ', {
-  encodeURIComponent(value) { return keys.has(value) ? `<strong>${value}</strong>` : value; },
-});
+const debug = (obj) =>
+  querystring.stringify(
+    Object.entries(obj).reduce((acc, [key, value]) => {
+      keys.add(key);
+      if (isEmpty(value)) return acc;
+      acc[key] = inspect(value, { depth: null });
+      return acc;
+    }, {}),
+    "<br/>",
+    ": ",
+    {
+      encodeURIComponent(value) {
+        return keys.has(value) ? `<strong>${value}</strong>` : value;
+      },
+    }
+  );
 
 export default (app, provider) => {
-  const { constructor: { errors: { SessionNotFound } } } = provider;
+  const { SessionNotFound } = errors;
 
   app.use((req, res, next) => {
     const orig = res.render;
@@ -29,7 +38,7 @@ export default (app, provider) => {
     res.render = (view, locals) => {
       app.render(view, locals, (err, html) => {
         if (err) throw err;
-        orig.call(res, '_layout', {
+        orig.call(res, "_layout", {
           ...locals,
           body: html,
         });
@@ -39,26 +48,24 @@ export default (app, provider) => {
   });
 
   function setNoCache(req, res, next) {
-    res.set('cache-control', 'no-store');
+    res.set("cache-control", "no-store");
     next();
   }
 
-  app.get('/interaction/:uid', setNoCache, async (req, res, next) => {
+  app.get("/interaction/:uid", setNoCache, async (req, res, next) => {
     try {
-      const {
-        uid, prompt, params, session,
-      } = await provider.interactionDetails(req, res);
+      const { uid, prompt, params, session } = await provider.interactionDetails(req, res);
 
       const client = await provider.Client.find(params.client_id);
 
       switch (prompt.name) {
-        case 'login': {
-          return res.render('login', {
+        case "login": {
+          return res.render("login", {
             client,
             uid,
             details: prompt.details,
             params,
-            title: 'Sign-in',
+            title: "Sign-in",
             session: session ? debug(session) : undefined,
             dbg: {
               params: debug(params),
@@ -66,13 +73,13 @@ export default (app, provider) => {
             },
           });
         }
-        case 'consent': {
-          return res.render('interaction', {
+        case "consent": {
+          return res.render("interaction", {
             client,
             uid,
             details: prompt.details,
             params,
-            title: 'Authorize',
+            title: "Authorize",
             session: session ? debug(session) : undefined,
             dbg: {
               params: debug(params),
@@ -88,10 +95,12 @@ export default (app, provider) => {
     }
   });
 
-  app.post('/interaction/:uid/login', setNoCache, body, async (req, res, next) => {
+  app.post("/interaction/:uid/login", setNoCache, body, async (req, res, next) => {
     try {
-      const { prompt: { name } } = await provider.interactionDetails(req, res);
-      assert.equal(name, 'login');
+      const {
+        prompt: { name },
+      } = await provider.interactionDetails(req, res);
+      assert.equal(name, "login");
       const account = await Account.findByLogin(req.body.login);
 
       const result = {
@@ -106,11 +115,15 @@ export default (app, provider) => {
     }
   });
 
-  app.post('/interaction/:uid/confirm', setNoCache, body, async (req, res, next) => {
+  app.post("/interaction/:uid/confirm", setNoCache, body, async (req, res, next) => {
     try {
       const interactionDetails = await provider.interactionDetails(req, res);
-      const { prompt: { name, details }, params, session: { accountId } } = interactionDetails;
-      assert.equal(name, 'consent');
+      const {
+        prompt: { name, details },
+        params,
+        session: { accountId },
+      } = interactionDetails;
+      assert.equal(name, "consent");
 
       let { grantId } = interactionDetails;
       let grant;
@@ -127,14 +140,14 @@ export default (app, provider) => {
       }
 
       if (details.missingOIDCScope) {
-        grant.addOIDCScope(details.missingOIDCScope.join(' '));
+        grant.addOIDCScope(details.missingOIDCScope.join(" "));
       }
       if (details.missingOIDCClaims) {
         grant.addOIDCClaims(details.missingOIDCClaims);
       }
       if (details.missingResourceScopes) {
         for (const [indicator, scopes] of Object.entries(details.missingResourceScopes)) {
-          grant.addResourceScope(indicator, scopes.join(' '));
+          grant.addResourceScope(indicator, scopes.join(" "));
         }
       }
 
@@ -153,11 +166,11 @@ export default (app, provider) => {
     }
   });
 
-  app.get('/interaction/:uid/abort', setNoCache, async (req, res, next) => {
+  app.get("/interaction/:uid/abort", setNoCache, async (req, res, next) => {
     try {
       const result = {
-        error: 'access_denied',
-        error_description: 'End-User aborted interaction',
+        error: "access_denied",
+        error_description: "End-User aborted interaction",
       };
       await provider.interactionFinished(req, res, result, { mergeWithLastSubmission: false });
     } catch (err) {
